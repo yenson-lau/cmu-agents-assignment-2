@@ -49,8 +49,9 @@ scripts/deploy_agent_runner.sh         # gateway + mini-swe-agent runner (Part 3
 
 ## Testing and cost
 
-- Free (local, no model calls): `workflow validate-tasks`, `package`, `init-labels`, `validate-labels`, `score`, `check-submission --skip-harbor-runs`, `harbor/preflight.py`.
+- Free (local, no model calls): `workflow validate-tasks`, `package`, `init-labels`, `validate-labels`, `score`, `check-submission --skip-harbor-runs`, `harbor/preflight.py`, `uv run pytest` (billable tests are deselected by default).
 - Local but slow (Docker, no Modal): `harbor run` with `-a oracle`/`-a nop`/mutants, and the full `check-submission`.
 - Billable (Modal GPU time on my account): `validator.runner` (validator endpoint), `workflow generate` (generation GPUs: L4, L40S and H100, plus the runner), and any other request to a deployed endpoint. Ask before running any of these, and prefer small subsets while iterating (`generate --models qwen`, or `validator.runner --artifacts` pointed at a directory with a few runs; `--resume` skips runs already predicted).
+- Billable (OpenRouter on my account): `uv run pytest -m openrouter` (calls the pinned OpenRouter models). Ask before running it.
 - Deploy scripts also build images on Modal's compute (a few CPU-minutes). Ask before running them too.
 - After a crashed billable run, check `uv run modal container list` and stop leftovers with `uv run modal container stop <id>`. To keep endpoints from waking at all, `uv run modal app stop <app>` (`hw2-validator-model`, `hw2-generation-models`, `hw2-agent-runner`, `hw2-generation-gateway`). The `modal` CLI is only installed in `.venv`, so the bare `modal` command works only in an activated venv.

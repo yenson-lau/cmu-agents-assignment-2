@@ -23,3 +23,16 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["validator", "workflow"]
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Billable tests are deselected by default; run them with `pytest -m openrouter`.
+addopts = "-m 'not openrouter'"
+markers = [
+    "openrouter: makes billable requests to OpenRouter",
+]

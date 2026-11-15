@@ -51,7 +51,7 @@ Required context length: 32,768
   - ❌ No provider supports the `tools` parameter (Parasail, DeepInfra), so the agent cannot call its bash tool
 
 - **`meta-llama/llama-3.1-8b-instruct` (131K context)**
-  - Can fix provider to Groq (quantization unknown). CoreWeave offers BF16 but its tool calls are broken for this model: arguments come back duplicated (`{"command": "echo ok"}{"command": "echo ok"}`), which fails `tests/test_openrouter.py`
+  - Can fix provider to Groq (quantization unknown). CoreWeave offers BF16 but its tool calls are broken for this model: arguments come back duplicated (`{"command": "echo ok"}{"command": "echo ok"}`), which fails `tests/openrouter/test_api.py`
   - Different model family to both Qwen and Mistral
   - 8B vs. 3B parameters, so likely somewhat stronger than the original
   - Released in July 2024 vs. November 2024 for Qwen 2.5 Coder, so tool calling is likely unreliable, which suits the weakest agent slot
@@ -135,7 +135,7 @@ That's about five lines in `complete()`. The gateway only receives settings thro
 
 #### OpenRouter tests
 
-The tests need to validate that the models in `backends.toml` can be relied on to replace the functionality in the original Modal setup. They are located in `tests/test_openrouter.py`.
+The tests need to validate that the models in `backends.toml` can be relied on to replace the functionality in the original Modal setup. They are located in `tests/openrouter/test_api.py`.
 
 They call OpenRouter directly (`OPENROUTER_BASE_URL` and `OPENROUTER_API_KEY` from `.env`), using each role's `openrouter_model` and `openrouter_provider` from `backends.toml`. They test the models and providers only, not the adapter or the Modal gateway.
 
@@ -143,7 +143,11 @@ They call OpenRouter directly (`OPENROUTER_BASE_URL` and `OPENROUTER_API_KEY` fr
 - **Each agent, turn 1:** with a minimal bash tool and the prompt "run `echo ok`", the response contains a real `tool_calls` entry with valid JSON arguments, not a tool call written as text.
 - **Each agent, turn 2:** sending back the assistant tool call plus a matching `tool` message (`tool_call_id`, content `ok`) is accepted and gets a response. This catches multi-turn issues such as Mistral's tool-call ID and ordering rules and GLM's reasoning field.
 
+Context length differs between backends: the Modal validator has 32K tokens, OpenRouter's has 262K. Seed trajectories peak around 23K tokens, so this rarely matters, and the adapter doesn't enforce 32K. Instead, `complete()` logs a warning (`validator.model` logger, stderr by default) when a response's `usage.prompt_tokens` plus `max_tokens` exceeds 32K, as a hint that Modal would have compacted that input.
+
+`tests/openrouter/test_validator.py` covers the validator adapter in `validator/model.py`: free tests check that the `validator` alias resolves to the `[validator]` entry, that an unknown alias raises, and that the 32K warning is logged only over the limit (with a stubbed client); one billable test sends the same chart through `complete()` and checks the pinned provider served it.
+
 Notes:
 
-- Run with `uv run python -m tests.test_openrouter [validator] [small] [medium] [large]` (all roles by default).
-- Billable (fractions of a cent per run), so it must never run as part of a default test command. Ask before running. The checks are not named `test_*`, so pytest won't collect them.
+- Billable tests carry the `openrouter` pytest marker, which `pyproject.toml` deselects by default. `uv run pytest` runs only the free tests; `uv run pytest -m openrouter` runs the billable ones (fractions of a cent per run). Ask before running those.
+- Narrow to one role with `-k`, e.g. `uv run pytest -m openrouter -k medium`.
