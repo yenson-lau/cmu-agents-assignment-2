@@ -1,5 +1,7 @@
 # 11-768 Assignment 2: Evaluating a Data-Visualization Agent
 
+NOTE: See [modifications](MODIFICATIONS.md) to the assignment, as it is being done as a side project and several grading considerations are not applicable.
+
 ## Overview
 
 Robust evaluations are critical to the agent development process, allowing us to determine how capable or reliable agents are before deploying them into the real world. However, the complexity of agentic systems and the long timespan of tasks upon which we evaluate agents present many new complications in developing evaluations (especially compared to pre-agentic language model evaluations). In this assignment, you'll get hands-on experience designing evaluation tasks and evaluating agent trajectories, giving you a better sense of the challenges present in evaluation development.

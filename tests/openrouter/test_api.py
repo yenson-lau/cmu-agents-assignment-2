@@ -1,4 +1,4 @@
-"""Check that the OpenRouter models in backends.toml can stand in for Modal.
+"""Check that the OpenRouter models in openrouter.toml can stand in for Modal.
 
 Calls OpenRouter directly with each role's model and provider pin. Billable, so
 every test here carries the `openrouter` marker and is deselected by default:
@@ -38,9 +38,9 @@ BASH_TOOL = {
 
 def _create(client: OpenAI, backend: dict[str, Any], **request: Any):
     response = client.chat.completions.create(
-        model=backend["openrouter_model"],
+        model=backend["model"],
         temperature=0,
-        extra_body={"provider": backend["openrouter_provider"]},
+        extra_body={"provider": backend["provider"]},
         **request,
     )
     assert response.choices, f"no choices in response: {response.model_dump()}"
@@ -50,13 +50,13 @@ def _create(client: OpenAI, backend: dict[str, Any], **request: Any):
 
 
 def test_validator(
-    client: OpenAI, backends: dict[str, Any], chart_message: dict[str, Any], image_answer: str
+    client: OpenAI, openrouter_config: dict[str, Any], chart_message: dict[str, Any], image_answer: str
 ) -> None:
     """
     The pinned provider receives a chart image and names its tallest bar.
     """
 
-    message = _create(client, backends["validator"], max_tokens=50, messages=[chart_message])
+    message = _create(client, openrouter_config["validator"], max_tokens=50, messages=[chart_message])
     answer = (message.content or "").strip()
     assert image_answer in answer.lower(), f"expected {image_answer!r}, got {answer!r}"
 

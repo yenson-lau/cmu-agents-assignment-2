@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import tempfile
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import modal
+from dotenv import load_dotenv
 from PIL import Image
 from tqdm import tqdm
 
@@ -19,6 +22,10 @@ from .tasks import AuthoredTask, load_tasks
 RELEASE = Path(__file__).resolve().parents[1]
 RUNNER_APP = "hw2-agent-runner"
 RUNNER_FUNCTION = "run_task"
+OPENROUTER_CONFIG = RELEASE / "infrastructure" / "openrouter.toml"
+
+load_dotenv(RELEASE / ".env")
+BACKEND = os.getenv("GENERATION_BACKEND", "modal")
 
 
 @dataclass(frozen=True)
@@ -28,18 +35,29 @@ class Agent:
     url_variable: str
 
 
+AGENT_MODELS = {
+    "small": "Qwen/Qwen2.5-Coder-3B-Instruct",
+    "medium": "mistralai/Ministral-3-14B-Instruct-2512",
+    "large": "zai-org/GLM-4.7-Flash",
+}
+if BACKEND == "openrouter":
+    # Record the model that actually runs; the gateway sends it upstream as is.
+    _openrouter_agents = tomllib.loads(OPENROUTER_CONFIG.read_text())["agents"]
+    AGENT_MODELS = {key: _openrouter_agents[key]["model"] for key in AGENT_MODELS}
+
+
 AGENTS: tuple[Agent, ...] = (
     Agent(
-        "qwen",
-        "Qwen/Qwen2.5-Coder-3B-Instruct",
+        "small",
+        AGENT_MODELS["small"],
         "GENERATION_QWEN_BASE_URL",
     ),
     Agent(
-        "ministral",
-        "mistralai/Ministral-3-14B-Instruct-2512",
+        "medium",
+        AGENT_MODELS["medium"],
         "GENERATION_MINISTRAL_BASE_URL",
     ),
-    Agent("glm", "zai-org/GLM-4.7-Flash", "GENERATION_GLM_BASE_URL"),
+    Agent("large", AGENT_MODELS["large"], "GENERATION_GLM_BASE_URL"),
 )
 AGENT_BY_KEY = {agent.key: agent for agent in AGENTS}
 

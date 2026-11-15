@@ -1,4 +1,4 @@
-"""Shared fixtures for the OpenRouter tests: backends.toml, the client and a test chart."""
+"""Shared fixtures for the OpenRouter tests: openrouter.toml, the client and a test chart."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 RELEASE = Path(__file__).resolve().parents[2]
-BACKENDS = RELEASE / "infrastructure" / "backends.toml"
+OPENROUTER_CONFIG = RELEASE / "infrastructure" / "openrouter.toml"
 
 load_dotenv(RELEASE / ".env")
 
@@ -25,20 +25,20 @@ IMAGE_ANSWER = "blueberry"
 IMAGE_QUESTION = "Which fruit has the tallest bar? Answer in one word."
 
 
-def _load_backends() -> dict[str, Any]:
-    return tomllib.loads(BACKENDS.read_text())
+def _load_openrouter_config() -> dict[str, Any]:
+    return tomllib.loads(OPENROUTER_CONFIG.read_text())
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
-    # One test case per agent role in backends.toml; select with e.g. `-k medium`.
+    # One test case per agent role in openrouter.toml; select with e.g. `-k medium`.
     if "agent" in metafunc.fixturenames:
-        agents = _load_backends()["agents"]
+        agents = _load_openrouter_config()["agents"]
         metafunc.parametrize("agent", list(agents.values()), ids=list(agents))
 
 
 @pytest.fixture(scope="session")
-def backends() -> dict[str, Any]:
-    return _load_backends()
+def openrouter_config() -> dict[str, Any]:
+    return _load_openrouter_config()
 
 
 @pytest.fixture(scope="session")

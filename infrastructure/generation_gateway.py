@@ -110,8 +110,7 @@ def _qwen_tool_fallback(
     return response
 
 
-@app.function(image=image, secrets=[endpoint_secret], timeout=10 * 60)
-def complete(request: dict[str, Any]) -> dict[str, Any]:
+def _modal_complete(request: dict[str, Any]) -> dict[str, Any]:
     """Forward one OpenAI-compatible completion without exposing credentials."""
     import requests
 
@@ -135,3 +134,49 @@ def complete(request: dict[str, Any]) -> dict[str, Any]:
     assert response is not None
     response.raise_for_status()
     return _qwen_tool_fallback(response.json(), payload["tools"])
+
+
+def _openrouter_complete(request: dict[str, Any]) -> dict[str, Any]:
+    import requests
+
+    base = os.environ["OPENROUTER_BASE_URL"].rstrip("/")
+    url = base if base.endswith("/chat/completions") else base + "/chat/completions"
+    config = json.loads(os.environ["OPENROUTER_CONFIG_JSON"])
+    try:
+        provider = next(
+            agent["provider"]
+            for agent in config["agents"].values()
+            if agent["model"] == request["model"]
+        )
+    except StopIteration:
+        raise ValueError(
+            f"OpenRouter model {request['model']!r} not configured; check "
+            "GENERATION_BACKEND and rerun scripts/configure_generation.sh"
+        ) from None
+    payload = {
+        "model": request["model"],
+        "messages": request["messages"],
+        "tools": request.get("tools", []),
+        "provider": provider,
+        **request.get("generation", {}),
+    }
+    headers = {"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}"}
+    for attempt in range(6):
+        response = requests.post(url, json=payload, headers=headers, timeout=300)
+        if response.status_code not in {429, 502, 503, 504}:
+            break
+        time.sleep(min(30, 2**attempt))
+    assert response is not None
+    response.raise_for_status()
+    return response.json()
+
+
+@app.function(image=image, secrets=[endpoint_secret], timeout=10 * 60)
+def complete(request: dict[str, Any]) -> dict[str, Any]:
+    BACKEND = os.getenv("GENERATION_BACKEND", "modal")
+    if BACKEND == "modal":
+        return _modal_complete(request)
+    elif BACKEND == "openrouter":
+        return _openrouter_complete(request)
+    else:
+        raise ValueError(f"Invalid backend: {BACKEND}")

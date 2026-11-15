@@ -19,6 +19,7 @@ scripts/deploy_agent_runner.sh         # gateway + mini-swe-agent runner (Part 3
 - Python is pinned to 3.12 in `.python-version`.
 - Copy `.env.example` to `.env`, append `/v1` to every endpoint URL, and use a Modal proxy token (`<token-id>.<token-secret>`) as the API keys. Never commit `.env`.
 - Deploying is free, since every app scales to zero. GPU billing starts on the first request and continues until five idle minutes after the last one. A cold start takes 5-10 minutes (about 12 for an empty GLM cache).
+- To switch the agents' backend, change `GENERATION_BACKEND` in `.env` and run `scripts/configure_generation.sh`; it only rewrites the gateway secret, so no redeploy is needed. Warm gateway containers keep the old backend until they scale down (or `uv run modal container stop <id>`).
 - Harbor runs need Docker running locally.
 - Deployment troubleshooting: `infrastructure/README.md`. Harbor errors: `harbor/TROUBLESHOOTING.md`.
 

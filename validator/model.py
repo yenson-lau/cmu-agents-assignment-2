@@ -19,7 +19,7 @@ load_dotenv()
 #: Stable alias exposed by the canonical student/staff validator deployment.
 BACKEND = os.getenv("VALIDATOR_BACKEND", "openrouter")
 MODEL = os.getenv("VALIDATOR_MODEL", "validator")
-BACKENDS = Path(__file__).resolve().parents[1] / "infrastructure" / "backends.toml"
+OPENROUTER_CONFIG = Path(__file__).resolve().parents[1] / "infrastructure" / "openrouter.toml"
 
 #: --max-model-len of the Modal deployment (infrastructure/validator_model.py).
 #: OpenRouter's context is far larger, so going over this is only logged.
@@ -75,22 +75,22 @@ def _openrouter_client() -> OpenAI:
 
 
 def _openrouter_backend() -> dict[str, Any]:
-    # backends.toml maps the Modal alias (MODEL) to its OpenRouter model and provider pin.
-    backend = tomllib.loads(BACKENDS.read_text())["validator"]
-    if backend["modal_key"] != MODEL:
+    # openrouter.toml's [validator] section holds the OpenRouter model and provider
+    # pin for the Modal alias (MODEL) of the same name.
+    if MODEL != "validator":
         raise RuntimeError(
-            f"VALIDATOR_MODEL={MODEL!r} does not match modal_key {backend['modal_key']!r} in {BACKENDS}"
+            f"VALIDATOR_MODEL={MODEL!r} has no [{MODEL}] section in {OPENROUTER_CONFIG}"
         )
-    return backend
+    return tomllib.loads(OPENROUTER_CONFIG.read_text())["validator"]
 
 
 def _openrouter_complete(messages: list[dict[str, Any]], **generation: Any) -> dict[str, Any]:
     backend = _openrouter_backend()
     options = {"temperature": 0, **generation}
     response = _openrouter_client().chat.completions.create(
-        model=backend["openrouter_model"],
+        model=backend["model"],
         messages=messages,  # type: ignore[arg-type] - kept flexible for image parts
-        extra_body={"provider": backend["openrouter_provider"]},
+        extra_body={"provider": backend["provider"]},
         **options,
     )
 
