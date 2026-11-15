@@ -40,6 +40,7 @@ scripts/deploy_agent_runner.sh         # gateway + mini-swe-agent runner (Part 3
 - Don't modify `artifacts/`, `seed_labels.json`, `harbor/example/` or `harbor/template/`. Change `infrastructure/` and `workflow/` only if I ask.
 - Authored tasks may only use matplotlib, numpy, pandas, Pillow, scipy and seaborn.
 - After `workflow package` and after generating runs, leave the seeded prompt in `harbor/tasks/<task_id>/instruction.md` unchanged.
+- Don't make any git commit without my explicit permission for that specific commit. Permission for an earlier commit, or an offer I didn't answer, doesn't count. The same applies to pushing.
 
 ## How to help me
 
